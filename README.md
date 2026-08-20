@@ -1,4 +1,4 @@
-# Incident Response & Threat Hunting Report: MySQL Extortion Campaign on Windows Honeypot
+# Honeypot and Incident Response Report: MySQL Extortion Campaign on Windows 11
 
 **Core Competencies:** `SIEM / Detection Engineering (KQL)` • `Digital Forensics & Incident Response (DFIR)` • `Microsoft Defender for Endpoint (MDE)` • `Azure Monitor / Log Analytics` • `Threat Hunting & MITRE ATT&CK Mapping`
 
