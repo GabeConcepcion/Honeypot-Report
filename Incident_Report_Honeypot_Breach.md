@@ -1,6 +1,8 @@
 # Incident Response & Threat Hunting Report: MySQL Extortion Campaign on Windows Honeypot
- 
-**Target Asset:** `corp-tx-prl1` (Azure Windows 11 Enterprise VM)  
+
+**Core Competencies:** `SIEM / Detection Engineering (KQL)` • `Digital Forensics & Incident Response (DFIR)` • `Microsoft Defender for Endpoint (MDE)` • `Azure Monitor / Log Analytics` • `Threat Hunting & MITRE ATT&CK Mapping`
+
+**Target Asset:** `corp-tx-prl1` (Azure Windows 11 Enterprise VM)
 **Incident ID:** `INC-2026-0817-MYSQL-RANSOM`  
 **Classification:** Database Ransomware / Data Exfiltration / Application-Layer Breach  
 **Severity:** Critical (P1)  
