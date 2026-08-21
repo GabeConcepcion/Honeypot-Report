@@ -9,6 +9,8 @@
 **Date of Incident:** August 17, 2026 – August 20, 2026  
 **Telemetry Sources:** Microsoft Defender for Endpoint (MDE), Log Analytics Workspace (`LAW-Cyber-Range`), Azure Monitor Agent (AMA), MySQL General/Audit Logs (`MySQLAudit_CL`)  
 
+[View Full Portfolio & Write-ups at gabeconcepcion.github.io](https://gabeconcepcion.github.io)
+
 ---
 
 ## 1. Executive Summary
